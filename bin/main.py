@@ -5,13 +5,18 @@ coding=utf-8
 Code template courtesy https://github.com/bjherger/Python-starter-repo
 
 """
-import cPickle
+import datetime
 import logging
 import os
+import pickle
 
-import pandas
+import numpy
+from keras import Input, Model
+from keras.callbacks import TensorBoard
+from keras.layers import Embedding, Dense, Flatten
+from keras.preprocessing.sequence import skipgrams
 
-import lib
+from bin import transformations
 
 
 def main():
@@ -22,67 +27,50 @@ def main():
     """
     logging.basicConfig(level=logging.DEBUG)
 
-    observations = extract()
-    observations = transform(observations)
-    observations, transformation_pipeline, trained_model = model(observations)
-    load(observations, transformation_pipeline, trained_model)
-    pass
+    # Read in text
+    text_path = '../data/alice_in_wonderland.txt'
+    text = open(text_path, 'r').read()
+    logging.info('Read {} characters from {}'.format(len(text), text_path))
+
+    # Change text to sequence of indices
+    vectorizer = transformations.EmbeddingVectorizer()
+    indices = vectorizer.fit_transform([[text]])
+
+    vocab_size = numpy.max(indices) + 1
+
+    # Change sequence of indices to skipgram training pair and T/F label (E.g. [[project, gutenberg], True]
+    # TODO There must be a better way of getting a 1d array
+    X, y = skipgrams(indices.tolist()[0], vocabulary_size=vocab_size, window_size=4, categorical=True)
+    X = numpy.array(X)
+    y = numpy.array(y)
+    logging.info('X shape: {}, y shape: {}'.format(X.shape, y.shape))
 
 
-def extract():
-    logging.info('Begin extract')
-    observations = pandas.DataFrame()
+    # Create architecture
+    # TODO Should be two separate inputs, rather than a timeseries w/ 2 time steps
+    input_layer = Input(shape=(2,), name='text_input')
+    x = input_layer
+    x = Embedding(input_dim=vocab_size, output_dim=50, input_length=2, name='text_embedding')(x)
+    x = Flatten()(x)
+    x = Dense(2, activation='softmax', name='output')(x)
 
-    lib.archive_dataset_schemas('extract', locals(), globals())
-    logging.info('End extract')
-    return observations
+    model = Model(input_layer, x)
 
+    model.compile(optimizer='Adam', loss='categorical_crossentropy')
 
-def transform(observations):
-    logging.info('Begin transform')
+    # Train architecture
+    callbacks = [TensorBoard(os.path.expanduser('~/.logs/'+str(datetime.datetime.now())))]
+    model.fit(X, y, epochs=5, validation_split=.1, callbacks=callbacks, batch_size=2**13)
 
-    lib.archive_dataset_schemas('transform', locals(), globals())
-    logging.info('End transform')
-    return observations
+    embedding = model.get_layer('text_embedding')
+    weights = embedding.get_weights()[0]
+    print(weights)
+    print(weights.shape)
+    print(type(weights))
 
-
-def model(observations):
-    logging.info('Begin model')
-
-    mapper = None
-
-    transformation_pipeline = None
-
-    trained_model = None
-
-    lib.archive_dataset_schemas('model', locals(), globals())
-    logging.info('End model')
-    return observations, transformation_pipeline, trained_model
-
-
-def load(observations, transformation_pipeline, trained_model):
-    logging.info('Begin load')
-
-    # Reference variables
-    lib.get_temp_dir()
-
-    observations_path = os.path.join(lib.get_temp_dir(), 'observations.csv')
-    logging.info('Saving observations to path: {}'.format(observations_path))
-    observations.to_csv(observations_path, index=False)
-
-    if transformation_pipeline is not None:
-        transformation_pipeline_path = os.path.join(lib.get_temp_dir(), 'transformation_pipeline.pkl')
-        logging.info('Saving transformation_pipeline to path: {}'.format(transformation_pipeline))
-        cPickle.dump(transformation_pipeline, open(transformation_pipeline, 'w+'))
-
-    if trained_model is not None:
-        trained_model_path = os.path.join(lib.get_temp_dir(), 'trained_model.pkl')
-        logging.info('Saving trained_model to path: {}'.format(transformation_pipeline))
-        cPickle.dump(trained_model, open(trained_model_path, 'w+'))
-
-    lib.archive_dataset_schemas('load', locals(), globals())
-    logging.info('End load')
-    pass
+    # Store weights
+    pickle.dump(weights, open('alice_embedding.pkl', 'wb'))
+    pickle.dump(vectorizer.token_index_lookup, open('alice_vocab_index.pkl', 'wb'))
 
 
 # Main section
