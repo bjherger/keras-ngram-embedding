@@ -1,15 +1,25 @@
-# Python Starter Repo
+# Keras ngram embedding
 
-A brief, snappy description of what this project does, and why the audience cares
+Train a text embedding from scratch, using Keras! The text is broken down into pairs of words, and whether those 
+words ever appear within a one-sided window of `n` words. 
+
+For example, given the text `Alice was beginning to get very tired of sitting by her sister on the
+bank`, and a window of 2 words, we might get samples:
+
+[[`Alice`, `was`], True]
+[[`Alice`, `beginning`], True]
+[[`Alice`, `tired`], False]
 
 ## Quick start
+
+To create an embedding, just do the following: 
 
 ```python
 # Set up Anaconda virtual environment
 conda env create -f environment.yml --force
 
 # Activate Anaconda virtual environment
-source activate (environment_name)
+source activate thesaurus
 
 # Run code
 cd bin/
@@ -19,7 +29,7 @@ python main.py
 ## Repo structure
 
  - `bin/main.py`: Code entry point
- - `conf/conf.py`: Configuration file for project
+ 
 
 ### Python Environment
 Python code in this repo utilizes packages that are not part of the common library. To make sure you have all of the 
