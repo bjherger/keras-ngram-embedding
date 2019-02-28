@@ -69,8 +69,8 @@ def main():
     print(type(weights))
 
     # Store weights
-    pickle.dump(weights, open('alice_embedding.pkl', 'wb'))
-    pickle.dump(vectorizer.token_index_lookup, open('alice_vocab_index.pkl', 'wb'))
+    pickle.dump(weights, open('custom_embedding.pkl', 'wb'))
+    pickle.dump(vectorizer.token_index_lookup, open('custom_vocab_index.pkl', 'wb'))
 
 
 # Main section
