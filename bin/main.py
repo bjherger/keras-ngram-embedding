@@ -5,18 +5,37 @@ coding=utf-8
 Code template courtesy https://github.com/bjherger/Python-starter-repo
 
 """
-import datetime
-import logging
-import os
-import pickle
+import pandas
 
-import numpy
-from keras import Input, Model
-from keras.callbacks import TensorBoard
-from keras.layers import Embedding, Dense, Flatten
-from keras.preprocessing.sequence import skipgrams
+TEST_RUN = True
 
-from bin import transformations
+def gen_word_pairs():
+    global TEST_RUN
+
+    # Reference variables
+    vocabulary = set()
+
+    # Read in data
+    observations = pandas.read_pickle('../data/posts.pkl')
+    if TEST_RUN:
+        observations = observations.sample(1000)
+        observations = observations.reset_index()
+    print(observations.columns)
+    # TODO Create vocabulary
+    for document in observations['text_clean']:
+        # print(document)
+        pass
+    # TODO Create word pairs
+    # TODO Return
+    pass
+
+
+def train_model():
+    pass
+
+
+def extract_embedding():
+    pass
 
 
 def main():
@@ -25,53 +44,27 @@ def main():
     :return: None
     :rtype: None
     """
-    logging.basicConfig(level=logging.DEBUG)
+    # Reference variables
+    gen_word_pairs_config = True
+    train_model_config = True
+    extract_embedding_config = True
 
-    # Read in text
-    text_path = '../data/alice_in_wonderland.txt'
-    text = open(text_path, 'r').read()
-    logging.info('Read {} characters from {}'.format(len(text), text_path))
+    # TODO Create word pairs
+    if gen_word_pairs_config:
+        gen_word_pairs()
 
-    # Change text to sequence of indices
-    vectorizer = transformations.EmbeddingVectorizer()
-    indices = vectorizer.fit_transform([[text]])
+    # TODO Train model
+    if train_model_config:
+        train_model()
 
-    vocab_size = numpy.max(indices) + 1
+    # TODO Extract embedding
+    if extract_embedding_config:
+        extract_embedding()
 
-    # Change sequence of indices to skipgram training pair and T/F label (E.g. [[project, gutenberg], True]
-    # TODO There must be a better way of getting a 1d array
-    X, y = skipgrams(indices.tolist()[0], vocabulary_size=vocab_size, window_size=4, categorical=True)
-    X = numpy.array(X)
-    y = numpy.array(y)
-    logging.info('X shape: {}, y shape: {}'.format(X.shape, y.shape))
+    pass
 
-
-    # Create architecture
-    # TODO Should be two separate inputs, rather than a timeseries w/ 2 time steps
-    input_layer = Input(shape=(2,), name='text_input')
-    x = input_layer
-    x = Embedding(input_dim=vocab_size, output_dim=50, input_length=2, name='text_embedding')(x)
-    x = Flatten()(x)
-    x = Dense(2, activation='softmax', name='output')(x)
-
-    model = Model(input_layer, x)
-
-    model.compile(optimizer='Adam', loss='categorical_crossentropy')
-
-    # Train architecture
-    callbacks = [TensorBoard(os.path.expanduser('~/.logs/'+str(datetime.datetime.now())))]
-    model.fit(X, y, epochs=5, validation_split=.1, callbacks=callbacks, batch_size=2**13)
-
-    embedding = model.get_layer('text_embedding')
-    weights = embedding.get_weights()[0]
-    print(weights)
-    print(weights.shape)
-    print(type(weights))
-
-    # Store weights
-    pickle.dump(weights, open('custom_embedding.pkl', 'wb'))
-    pickle.dump(vectorizer.token_index_lookup, open('custom_vocab_index.pkl', 'wb'))
-
+def find_ngrams(input_list, n):
+    return zip(*[input_list[i:] for i in range(n)])
 
 # Main section
 if __name__ == '__main__':
